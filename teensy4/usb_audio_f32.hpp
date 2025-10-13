@@ -137,9 +137,10 @@ private:
 	{
 		for(uint32_t i = 0; i < len; i++)
 			for(uint16_t j = 0; j < noChannels; j++) {
-	#if AUDIO_SUBSLOT_SIZE>=2 && AUDIO_SUBSLOT_SIZE<=4
+	#if USB_AUDIO_FORMAT == 1 // PCM
+		#if AUDIO_SUBSLOT_SIZE>=2 && AUDIO_SUBSLOT_SIZE<=4
 				// USB PCM data is always signed
-		#if OPENAUDIO
+			#if OPENAUDIO
 				union {
 					int32_t i32;
 					uint8_t u8[4];
@@ -149,15 +150,28 @@ private:
 				for(int k = 0; k < AUDIO_SUBSLOT_SIZE; ++k, ++src)
 					tmp.u8[k+(4-AUDIO_SUBSLOT_SIZE)] = *src;
 				// convert to float
-				rxBuffer[bIdx][j]->data[count+i] = tmp.i32*(1.f/float(scale));
-		#else
+				rxBuffer[bIdx][j]->data[count+i] = tmp.i32*(1.f/float32_t(scale));
+			#else
 				src += (AUDIO_SUBSLOT_SIZE-2); // eventually ignore low PCM bytes (with loss of precision)
 				const int16_t *src16Bit = (const int16_t *)src;
 				rxBuffer[bIdx][j]->data[count+i] = *src16Bit;
 				src += 2;
+			#endif
+		#else
+			#error AUDIO_SUBSLOT_SIZE invalid
 		#endif
+	#elif USB_AUDIO_FORMAT == 4 // IEEE_FLOAT
+			#if OPENAUDIO
+				rxBuffer[bIdx][j]->data[count+i] = *(const float32_t *)(src);
+			#else
+				constexpr auto scale = 1<<(sizeof(int16_t)*8-1);
+				constexpr auto fmin = -1.f;
+				constexpr auto fmax = float((scale-1.)/scale);
+				rxBuffer[bIdx][j]->data[count+i] = int16_t(min(max(*src, fmin), fmax)*scale);
+			#endif
+				src += 4;
 	#else
-		#error AUDIO_SUBSLOT_SIZE invalid
+		#error USB_AUDIO_FORMAT invalid
 	#endif
 			}
 	}
@@ -290,8 +304,9 @@ private:
 	{
 		for (uint32_t i = 0; i < len; ++i) {
 			for (uint16_t j = 0; j < noChannels; ++j) {
-	#if AUDIO_SUBSLOT_SIZE>=2 && AUDIO_SUBSLOT_SIZE<=4
-		#if OPENAUDIO
+	#if USB_AUDIO_FORMAT == 1 // PCM
+		#if AUDIO_SUBSLOT_SIZE>=2 && AUDIO_SUBSLOT_SIZE<=4
+			#if OPENAUDIO
 				union {
 					int32_t i32;
 					uint8_t u8[4];
@@ -303,15 +318,26 @@ private:
 				tmp.i32 = max(min(txBuffer[bIdx][j]->data[count+i], fmax), fmin)*float(scale);
 				for(int k = 0; k < AUDIO_SUBSLOT_SIZE; ++k, ++dst)
 					*dst = tmp.u8[k+(4-AUDIO_SUBSLOT_SIZE)];
-		#else
+			#else
 				for(int k = 0; k < AUDIO_SUBSLOT_SIZE-2; ++k)
 					*dst++ = 0; // zero low bytes
 				int16_t* dst16Bit = (int16_t*)dst;
 				*dst16Bit = txBuffer[bIdx][j]->data[count+i];
 				dst += 2;
+			#endif
+		#else
+			#error AUDIO_SUBSLOT_SIZE invalid
 		#endif
+	#elif USB_AUDIO_FORMAT == 4 // IEEE_FLOAT
+			#if OPENAUDIO
+				*dst = txBuffer[bIdx][j]->data[count+i];
+			#else
+				constexpr auto scale = 1<<(sizeof(int16_t)*8-1);
+				*dst = txBuffer[bIdx][j]->data[count+i]*float32_t(1./scale);
+			#endif
+				dst += 4;
 	#else
-		#error AUDIO_SUBSLOT_SIZE invalid
+		#error USB_AUDIO_FORMAT invalid
 	#endif
 			}
 		}
