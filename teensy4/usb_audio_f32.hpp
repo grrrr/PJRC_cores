@@ -137,7 +137,7 @@ private:
 	{
 		for(uint32_t i = 0; i < len; i++)
 			for(uint16_t j = 0; j < noChannels; j++) {
-	#if USB_AUDIO_FORMAT == 1 // PCM
+	#if AUDIO_USB_FORMAT == 1 // PCM
 		#if AUDIO_SUBSLOT_SIZE>=2 && AUDIO_SUBSLOT_SIZE<=4
 				// USB PCM data is always signed
 			#if OPENAUDIO
@@ -160,7 +160,7 @@ private:
 		#else
 			#error AUDIO_SUBSLOT_SIZE invalid
 		#endif
-	#elif USB_AUDIO_FORMAT == 4 // IEEE_FLOAT
+	#elif AUDIO_USB_FORMAT == 4 // IEEE_FLOAT
 			#if OPENAUDIO
 				rxBuffer[bIdx][j]->data[count+i] = *(const float32_t *)(src);
 			#else
@@ -171,7 +171,7 @@ private:
 			#endif
 				src += 4;
 	#else
-		#error USB_AUDIO_FORMAT invalid
+		#error AUDIO_USB_FORMAT invalid
 	#endif
 			}
 	}
@@ -304,7 +304,7 @@ private:
 	{
 		for (uint32_t i = 0; i < len; ++i) {
 			for (uint16_t j = 0; j < noChannels; ++j) {
-	#if USB_AUDIO_FORMAT == 1 // PCM
+	#if AUDIO_USB_FORMAT == 1 // PCM
 		#if AUDIO_SUBSLOT_SIZE>=2 && AUDIO_SUBSLOT_SIZE<=4
 			#if OPENAUDIO
 				union {
@@ -328,7 +328,7 @@ private:
 		#else
 			#error AUDIO_SUBSLOT_SIZE invalid
 		#endif
-	#elif USB_AUDIO_FORMAT == 4 // IEEE_FLOAT
+	#elif AUDIO_USB_FORMAT == 4 // IEEE_FLOAT
 			#if OPENAUDIO
 				*dst = txBuffer[bIdx][j]->data[count+i];
 			#else
@@ -337,7 +337,7 @@ private:
 			#endif
 				dst += 4;
 	#else
-		#error USB_AUDIO_FORMAT invalid
+		#error AUDIO_USB_FORMAT invalid
 	#endif
 			}
 		}

@@ -1372,7 +1372,7 @@ PROGMEM const uint8_t usb_config_descriptor_480[CONFIG_DESC_SIZE_480] = {
       6,					// bLength
 	0x24,					// bDescriptorType = CS_INTERFACE
 	2,					// bDescriptorSubtype = FORMAT_TYPE
-	USB_AUDIO_FORMAT,		// bFormatType = FORMAT_TYPE_I (1...PCM, 2...PCM8, 4...IEEE_FLOAT)
+	AUDIO_USB_FORMAT,		// bFormatType = FORMAT_TYPE_I (1...PCM, 2...PCM8, 4...IEEE_FLOAT)
 	AUDIO_SUBSLOT_SIZE,		// bSubSlotSize = size of a single sample in bytes (e.g. 2 bytes for 16bit audio)
 	AUDIO_BITRESOLUTION,		// bBitResolution = 16 bits
 	// UAC2: 
@@ -1442,7 +1442,7 @@ PROGMEM const uint8_t usb_config_descriptor_480[CONFIG_DESC_SIZE_480] = {
       6,					// bLength
 	0x24,					// bDescriptorType = CS_INTERFACE
 	2,					// bDescriptorSubtype = FORMAT_TYPE
-	USB_AUDIO_FORMAT,			// bFormatType = FORMAT_TYPE_I
+	AUDIO_USB_FORMAT,			// bFormatType = FORMAT_TYPE_I
 	AUDIO_SUBSLOT_SIZE,		// bSubSlotSize = size of a single sample in bytes (e.g. 2 bytes for 16bit audio)
 	AUDIO_BITRESOLUTION,		// bBitResolution = 16 bits
 	// UAC2: 
@@ -2444,7 +2444,7 @@ PROGMEM const uint8_t usb_config_descriptor_12[CONFIG_DESC_SIZE_12] = {
       6,					// bLength
 	0x24,					// bDescriptorType = CS_INTERFACE
 	2,					// bDescriptorSubtype = FORMAT_TYPE
-	USB_AUDIO_FORMAT,			// bFormatType = FORMAT_TYPE_I
+	AUDIO_USB_FORMAT,			// bFormatType = FORMAT_TYPE_I
 	AUDIO_SUBSLOT_SIZE,		// bSubSlotSize = size of a single sample in bytes (e.g. 2 bytes for 16bit audio)
 	AUDIO_BITRESOLUTION,		// bBitResolution = 16 bits
 	// UAC2: 
@@ -2514,7 +2514,7 @@ PROGMEM const uint8_t usb_config_descriptor_12[CONFIG_DESC_SIZE_12] = {
       6,					// bLength
 	0x24,					// bDescriptorType = CS_INTERFACE
 	2,					// bDescriptorSubtype = FORMAT_TYPE
-	USB_AUDIO_FORMAT,			// bFormatType = FORMAT_TYPE_I
+	AUDIO_USB_FORMAT,			// bFormatType = FORMAT_TYPE_I
 	AUDIO_SUBSLOT_SIZE,		// bSubSlotSize = size of a single sample in bytes (e.g. 2 bytes for 16bit audio)
 	AUDIO_BITRESOLUTION,		// bBitResolution = 16 bits
 	// UAC2: 
