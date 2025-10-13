@@ -55,20 +55,18 @@ class AudioUSB_Base:
 protected:
 #if OPENAUDIO
 	typedef ::audio_block_f32_t audio_block_t;
-	audio_block_t *allocate() { return AudioStream_CLASS::allocate_f32(); }
-	audio_block_t *receiveReadOnly(unsigned int index = 0) { return AudioStream_CLASS::receiveReadOnly_f32(index); }
-	audio_block_t *receiveWritable(unsigned int index = 0) { return AudioStream_CLASS::receiveWritable_f32(index); }
-	void transmit(audio_block_t *block, unsigned char index = 0) { AudioStream_CLASS::transmit(block, index); }
-	void release(audio_block_t *block) { AudioStream_CLASS::release(block); }
-	static int blocklength(const audio_block_t *block) { return block->length; }
+	static AudioUSB_Base::audio_block_t *allocate() { return StreamClass::allocate_f32(); }
+	static void release(AudioUSB_Base::audio_block_t *block) { StreamClass::release(block); }
+	audio_block_t *receiveReadOnly(unsigned int index = 0) { return StreamClass::receiveReadOnly_f32(index); }
+	audio_block_t *receiveWritable(unsigned int index = 0) { return StreamClass::receiveWritable_f32(index); }
+	void transmit(AudioUSB_Base::audio_block_t *block, unsigned char index = 0) { StreamClass::transmit(block, index); }
+	static int blocklength(const AudioUSB_Base::audio_block_t *block) { return block->length; }
 #else
 	typedef ::audio_block_t audio_block_t;
-	static int blocklength(const audio_block_t *) { return AUDIO_BLOCK_SAMPLES; }
+	static int blocklength(const AudioUSB_Base::audio_block_t *) { return AUDIO_BLOCK_SAMPLES; }
 #endif
 public:
-	AudioUSB_Base(unsigned char ninput, audio_block_t **iqueue):
-		StreamClass(ninput, iqueue)
-	{}
+	AudioUSB_Base(unsigned char ninput, AudioUSB_Base::audio_block_t **iqueue): StreamClass(ninput, iqueue) {}
 };
 
 template <typename StreamClass>
@@ -78,7 +76,7 @@ class AudioInputUSB_Proto:
 public:	
 	AudioInputUSB_Proto(float kp = 400.f, float ki = .2f):
 		AudioUSB_Base<StreamClass>(0, NULL),
-		_usbInterface(setBlockQuite,releaseBlock,allocateBlock,areBlocksReady,copy_to_buffers,kp, ki)
+		_usbInterface(setBlockQuiet, releaseBlock, allocateBlock, areBlocksReady, copy_to_buffers, kp, ki)
 	{
 		for(uint16_t i = 0; i < USBAudioInInterface::ringRxBufferSize; i++)
 			for(uint16_t j = 0; j < USB_AUDIO_MAX_NO_CHANNELS; j++)
@@ -104,27 +102,33 @@ public:
 
 	void begin() {}
 
-	float getBufferedSamples() const {
+	float getBufferedSamples() const
+	{
 		return _usbInterface.getBufferedSamples();
 	}
 
-	float getBufferedSamplesSmooth() const {
+	float getBufferedSamplesSmooth() const
+	{
 		return _usbInterface.getBufferedSamplesSmooth();
 	}
 
-	float getRequestedSamplingFrequ() const {
+	float getRequestedSamplingFrequ() const
+	{
 		return _usbInterface.getRequestedSamplingFrequ();
 	}
 
-	float getActualBIntervalUs() const {
+	float getActualBIntervalUs() const
+	{
 		return _usbInterface.getActualBIntervalUs();
 	}
 
-	USBAudioInInterface::Status getStatus() const {
+	USBAudioInInterface::Status getStatus() const
+	{
 		return _usbInterface.getStatus();
 	}
 
-	float volume(void) {
+	float volume()
+	{
 		return _usbInterface.volume();
 	}
 
@@ -158,7 +162,8 @@ private:
 			}
 	}
 
-	static bool setBlockQuite(uint16_t bIdx, uint16_t channel) {        
+	static bool setBlockQuiet(uint16_t bIdx, uint16_t channel)
+	{        
 		if(!rxBuffer[bIdx][channel])
 			rxBuffer[bIdx][channel] = AudioUSB_Base<StreamClass>::allocate();
 
@@ -169,24 +174,26 @@ private:
 		return false;
 	}
 
-	static void releaseBlock(uint16_t bIdx, uint16_t channel) {        
+	static void releaseBlock(uint16_t bIdx, uint16_t channel)
+	{        
 		if(rxBuffer[bIdx][channel]) {
 			AudioUSB_Base<StreamClass>::release(rxBuffer[bIdx][channel]);
-			rxBuffer[bIdx][channel]=NULL;
+			rxBuffer[bIdx][channel] = NULL;
 		}
 	}
 
-	static bool allocateBlock(uint16_t bIdx, uint16_t channel) {        
+	static bool allocateBlock(uint16_t bIdx, uint16_t channel)
+	{        
 		if(!rxBuffer[bIdx][channel]) {
 			rxBuffer[bIdx][channel] = AudioUSB_Base<StreamClass>::allocate();
 		}
 		return rxBuffer[bIdx][channel] != NULL;
 	}
 
-	static bool areBlocksReady(uint16_t bIdx, uint16_t noChannels) {
+	static bool areBlocksReady(uint16_t bIdx, uint16_t noChannels)
+	{
 		for(uint16_t i = 0; i < noChannels; i++) {
-			if(!rxBuffer[bIdx][i])
-				return false;
+			if(!rxBuffer[bIdx][i]) return false;
 		}
 		return true;
 	}
@@ -206,7 +213,7 @@ class AudioOutputUSB_Proto:
 {
 public:
 	AudioOutputUSB_Proto(int nch = 0):
-		AudioUSB_Base<StreamClass>(nch || USB_AUDIO_MAX_NO_CHANNELS, inputQueueArray),
+		AudioUSB_Base<StreamClass>(nch?nch:USB_AUDIO_MAX_NO_CHANNELS, inputQueueArray),
 		_usbInterface(releaseBlocks, isBlockReady, copy_from_buffers)
 	{
 		begin();
@@ -218,15 +225,17 @@ public:
 		int16_t bIdx = -1;
 		uint16_t noChannels;
 		_usbInterface.update(bIdx, noChannels);
-		if(bIdx < 0){
+
+		if(bIdx < 0) {
 			//_usbInterface is not running for some reason
-			for (uint16_t i =0; i< USB_AUDIO_MAX_NO_CHANNELS; i++){
-				audio_block_t* b = AudioUSB_Base<StreamClass>::receiveReadOnly(i);
+			for (uint16_t i = 0; i < USB_AUDIO_MAX_NO_CHANNELS; i++){
+				typename AudioUSB_Base<StreamClass>::audio_block_t* b = AudioUSB_Base<StreamClass>::receiveReadOnly(i);
 				if(b)
 					AudioUSB_Base<StreamClass>::release(b);
 			}
 		}
-		for (uint16_t i =0; i< noChannels; i++) {
+
+		for(uint16_t i = 0; i < noChannels; i++) {
 			if(txBuffer[bIdx][i])
 				AudioUSB_Base<StreamClass>::release(txBuffer[bIdx][i]);
 
@@ -250,24 +259,28 @@ public:
 
 	void begin()
 	{
-		for (uint16_t i =0; i< USBAudioOutInterface::ringTxBufferSize; i++)
-			for (uint16_t j =0; j< USB_AUDIO_MAX_NO_CHANNELS; j++)
-				txBuffer[i][j]=NULL;
+		for (uint16_t i = 0; i < USBAudioOutInterface::ringTxBufferSize; i++)
+			for (uint16_t j = 0; j < USB_AUDIO_MAX_NO_CHANNELS; j++)
+				txBuffer[i][j] = NULL;
 	}
 
-	float getBufferedSamples() const {
+	float getBufferedSamples() const
+	{
 		return _usbInterface.getBufferedSamples();
 	}
 
-	float getBufferedSamplesSmooth() const {
+	float getBufferedSamplesSmooth() const
+	{
 		return _usbInterface.getBufferedSamplesSmooth();
 	}
 
-	float getActualBIntervalUs() const {
+	float getActualBIntervalUs() const
+	{
 		return _usbInterface.getActualBIntervalUs();
 	}
 
-	USBAudioOutInterface::Status getStatus() const {
+	USBAudioOutInterface::Status getStatus() const
+	{
 		return _usbInterface.getStatus();
 	}
 
@@ -317,7 +330,7 @@ private:
 	}
 
 	static typename AudioUSB_Base<StreamClass>::audio_block_t* txBuffer[USBAudioOutInterface::ringTxBufferSize][USB_AUDIO_MAX_NO_CHANNELS];
-	audio_block_t *inputQueueArray[USB_AUDIO_MAX_NO_CHANNELS];
+	typename AudioUSB_Base<StreamClass>::audio_block_t *inputQueueArray[USB_AUDIO_MAX_NO_CHANNELS];
     USBAudioOutInterface _usbInterface;
 };
 
@@ -328,18 +341,18 @@ typename AudioUSB_Base<StreamClass>::audio_block_t* AudioOutputUSB_Proto<StreamC
 //////////////////////////////
 
 
-typedef AudioInputUSB_Proto<AudioStream_CLASS> AudioInputUSB;
-typedef AudioOutputUSB_Proto<AudioStream_CLASS> AudioOutputUSB;
+using AudioInputUSB = AudioInputUSB_Proto<AudioStream_CLASS>;
+using AudioOutputUSB = AudioOutputUSB_Proto<AudioStream_CLASS>;
 
 #if USB_AUDIO_NO_CHANNELS_480 >= 4
-class AudioInputUSBQuad : public AudioInputUSB { public: AudioInputUSBQuad(float kp =400.f,float ki =.2f) : AudioInputUSB(kp, ki) {} };
-class AudioOutputUSBQuad : public AudioOutputUSB { public: AudioOutputUSBQuad(): AudioOutputUSB(4) {} };
+class AudioInputUSBQuad: public AudioInputUSB { public: AudioInputUSBQuad(float kp =400.f,float ki =.2f) : AudioInputUSB(kp, ki) {} };
+class AudioOutputUSBQuad: public AudioOutputUSB { public: AudioOutputUSBQuad(): AudioOutputUSB(4) {} };
 #if USB_AUDIO_NO_CHANNELS_480 >= 6
-class AudioInputUSBHex : public AudioInputUSB { public: AudioInputUSBHex(float kp =400.f,float ki =.2f) : AudioInputUSB(kp, ki) {} };
-class AudioOutputUSBHex : public AudioOutputUSB { public: AudioOutputUSBHex(): AudioOutputUSB(6) {} };
+class AudioInputUSBHex: public AudioInputUSB { public: AudioInputUSBHex(float kp =400.f,float ki =.2f) : AudioInputUSB(kp, ki) {} };
+class AudioOutputUSBHex: public AudioOutputUSB { public: AudioOutputUSBHex(): AudioOutputUSB(6) {} };
 #if USB_AUDIO_NO_CHANNELS_480 >= 8
-class AudioInputUSBOct : public AudioInputUSB { public: AudioInputUSBOct(float kp =400.f,float ki =.2f) : AudioInputUSB(kp, ki) {} };
-class AudioOutputUSBOct : public AudioOutputUSB { public: AudioOutputUSBOct(): AudioOutputUSB(8) {} };
+class AudioInputUSBOct: public AudioInputUSB { public: AudioInputUSBOct(float kp =400.f,float ki =.2f) : AudioInputUSB(kp, ki) {} };
+class AudioOutputUSBOct: public AudioOutputUSB { public: AudioOutputUSBOct(): AudioOutputUSB(8) {} };
 #endif // USB_AUDIO_NO_CHANNELS_480 >= 8
 #endif // USB_AUDIO_NO_CHANNELS_480 >= 6
 #endif // USB_AUDIO_NO_CHANNELS_480 >= 4
