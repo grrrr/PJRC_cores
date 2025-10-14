@@ -166,8 +166,9 @@ private:
 			#else
 				constexpr auto scale = 1<<(sizeof(int16_t)*8-1);
 				constexpr auto fmin = -1.f;
-				constexpr auto fmax = float((scale-1.)/scale);
-				rxBuffer[bIdx][j]->data[count+i] = int16_t(min(max(*src, fmin), fmax)*scale);
+				constexpr auto fmax = float32_t((scale-1.)/scale);
+				const float32_t fsrc = *(const float32_t *)src;
+				rxBuffer[bIdx][j]->data[count+i] = int16_t(min(max(fsrc, fmin), fmax)*scale);
 			#endif
 				src += 4;
 	#else
