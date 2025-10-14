@@ -651,9 +651,8 @@ static uint8_t microsoft_os_compatible_id_desc[] = {
       #define FEATURE_UNIT_DESC_SIZE_12 (6 + (1+USB_AUDIO_NO_CHANNELS_12)*4)
 #endif
 
-#define AUDIO_INTERFACE_UAC_DEF_SIZE 6
-#define AUDIO_INTERFACE_DESC_SIZE_480	8 + 9+9+8+17+12+17+FEATURE_UNIT_DESC_SIZE_480+12 + 9+9+16+AUDIO_INTERFACE_UAC_DEF_SIZE+7+8 + 9+9+16+AUDIO_INTERFACE_UAC_DEF_SIZE+7+8+7
-#define AUDIO_INTERFACE_DESC_SIZE_12  8 + 9+9+8+17+12+17+FEATURE_UNIT_DESC_SIZE_12+12 + 9+9+16+AUDIO_INTERFACE_UAC_DEF_SIZE+7+8 + 9+9+16+AUDIO_INTERFACE_UAC_DEF_SIZE+7+8+7
+#define AUDIO_INTERFACE_DESC_SIZE_480	8 + 9+9+8+17+12+17+FEATURE_UNIT_DESC_SIZE_480+12 + 9+9+16+6+7+8 + 9+9+16+6+7+8+7
+#define AUDIO_INTERFACE_DESC_SIZE_12  8 + 9+9+8+17+12+17+FEATURE_UNIT_DESC_SIZE_12+12 + 9+9+16+6+7+8 + 9+9+16+6+7+8+7
 #else
 #define AUDIO_INTERFACE_DESC_SIZE_12	0
 #define AUDIO_INTERFACE_DESC_SIZE_480	0
@@ -1361,7 +1360,7 @@ PROGMEM const uint8_t usb_config_descriptor_480[CONFIG_DESC_SIZE_480] = {
 	2,					// bTerminalLink: Terminal ID = 2
 	0,                            // bmControls
       1,                            // bFormatType 1=FORMAT_TYPE_I
-      AUDIO_USB_FORMAT, 0x00, 0x00, 0x00,       // bmFormats bits: PCM and IEEE_FLOAT
+      AUDIO_USB_FORMAT, 0x00, 0x00, 0x00,	// bmFormats bits: PCM and IEEE_FLOAT
       USB_AUDIO_NO_CHANNELS_480,           // bNrChannels
       LSB(CHANNEL_CONFIG_480),             // bmChannelConfig
       MSB(CHANNEL_CONFIG_480),             // bmChannelConfig
@@ -1373,7 +1372,7 @@ PROGMEM const uint8_t usb_config_descriptor_480[CONFIG_DESC_SIZE_480] = {
       6,					// bLength
 	0x24,					// bDescriptorType = CS_INTERFACE
 	2,					// bDescriptorSubtype = FORMAT_TYPE
-	0x01,		// bFormatType = FORMAT_TYPE_I (1...PCM, 2...PCM8, 4...IEEE_FLOAT)
+	1,					// bFormatType = FORMAT_TYPE_I (1...PCM, 2...PCM8, 4...IEEE_FLOAT)
 	AUDIO_SUBSLOT_SIZE,		// bSubSlotSize = size of a single sample in bytes (e.g. 2 bytes for 16bit audio)
 	AUDIO_BITRESOLUTION,		// bBitResolution
 	// UAC2: 
@@ -1431,7 +1430,7 @@ PROGMEM const uint8_t usb_config_descriptor_480[CONFIG_DESC_SIZE_480] = {
 	3,					// bTerminalLink: Terminal ID = 3
 	0,                            //bmControls
       1,                            //bFormatType 1=FORMAT_TYPE_I
-      AUDIO_USB_FORMAT, 0x00, 0x00, 0x00,       // bmFormats bits: PCM and IEEE_FLOAT
+      AUDIO_USB_FORMAT, 0x00, 0x00, 0x00,	// bmFormats bits: PCM and IEEE_FLOAT
  	USB_AUDIO_NO_CHANNELS_480,           // bNrChannels
       LSB(CHANNEL_CONFIG_480),             // bmChannelConfig
       MSB(CHANNEL_CONFIG_480),             // bmChannelConfig
@@ -1440,12 +1439,12 @@ PROGMEM const uint8_t usb_config_descriptor_480[CONFIG_DESC_SIZE_480] = {
       0,                                   //iChannelNames   index of string descriptor at the bottom of the file
 	// UAC2: 
       // Univeral Serial Bus Device Class Definition for Audio Data Formats 2.0, Section 2.3.1.6, Table 2-2, page 15-16
-      6,                                        // bLength
+      6,					// bLength
 	0x24,					// bDescriptorType = CS_INTERFACE
 	2,					// bDescriptorSubtype = FORMAT_TYPE
-	0x01,			// bFormatType = FORMAT_TYPE_I
-        AUDIO_SUBSLOT_SIZE,             // bSubSlotSize = size of a single sample in bytes (e.g. 2 bytes for 16bit audio)
-        AUDIO_BITRESOLUTION,            // bBitResolution
+	1,					// bFormatType = FORMAT_TYPE_I
+	AUDIO_SUBSLOT_SIZE,		// bSubSlotSize = size of a single sample in bytes (e.g. 2 bytes for 16bit audio)
+	AUDIO_BITRESOLUTION,		// bBitResolution
 	// UAC2: 
       // Standard AS Isochronous Audio Data Endpoint Descriptor
       // Universal Serial Bus Device Class Definition for Audio Devices 2.0, Section 4.10.1.1, Table 4-33 page 85-86
@@ -2433,7 +2432,7 @@ PROGMEM const uint8_t usb_config_descriptor_12[CONFIG_DESC_SIZE_12] = {
 	2,					// bTerminalLink: Terminal ID = 2
 	0,                            //bmControls
       1,                            //bFormatType 1=FORMAT_TYPE_I
-      AUDIO_USB_FORMAT, 0x00, 0x00, 0x00,       // bmFormats bits: PCM and IEEE_FLOAT
+      AUDIO_USB_FORMAT, 0x00, 0x00, 0x00,	// bmFormats bits: PCM and IEEE_FLOAT
  	USB_AUDIO_NO_CHANNELS_12,           // bNrChannels
       LSB(CHANNEL_CONFIG_12),             // bmChannelConfig
       MSB(CHANNEL_CONFIG_12),             // bmChannelConfig
@@ -2442,12 +2441,12 @@ PROGMEM const uint8_t usb_config_descriptor_12[CONFIG_DESC_SIZE_12] = {
       0,                                  // iChannelNames   index of string descriptor at the bottom of the file
 	// UAC2: 
       // Univeral Serial Bus Device Class Definition for Audio Data Formats 2.0, Section 2.3.1.6, Table 2-2, page 15-16
-      6,                                        // bLength
+      6,					// bLength
 	0x24,					// bDescriptorType = CS_INTERFACE
 	2,					// bDescriptorSubtype = FORMAT_TYPE
-	0x01,			// bFormatType = FORMAT_TYPE_I
-        AUDIO_SUBSLOT_SIZE,             // bSubSlotSize = size of a single sample in bytes (e.g. 2 bytes for 16bit audio)
-        AUDIO_BITRESOLUTION,            // bBitResolution
+	1,					// bFormatType = FORMAT_TYPE_I
+	AUDIO_SUBSLOT_SIZE,		// bSubSlotSize = size of a single sample in bytes (e.g. 2 bytes for 16bit audio)
+	AUDIO_BITRESOLUTION,		// bBitResolution
 	// UAC2: 
 	// Standard AS Isochronous Audio Data Endpoint Descriptor
       // Universal Serial Bus Device Class Definition for Audio Devices 2.0, Section 4.10.1.1, Table 4-33 page 85-86
@@ -2503,7 +2502,7 @@ PROGMEM const uint8_t usb_config_descriptor_12[CONFIG_DESC_SIZE_12] = {
 	3,					// bTerminalLink: Terminal ID = 3
 	0,                            //bmControls
       1,                            //bFormatType 1=FORMAT_TYPE_I
-      AUDIO_USB_FORMAT, 0x00, 0x00, 0x00,       // bmFormats bits: PCM and IEEE_FLOAT
+      AUDIO_USB_FORMAT, 0x00, 0x00, 0x00,	// bmFormats bits: PCM and IEEE_FLOAT
  	USB_AUDIO_NO_CHANNELS_12,           // bNrChannels
       LSB(CHANNEL_CONFIG_12),             // bmChannelConfig
       MSB(CHANNEL_CONFIG_12),             // bmChannelConfig
@@ -2512,12 +2511,12 @@ PROGMEM const uint8_t usb_config_descriptor_12[CONFIG_DESC_SIZE_12] = {
       0,                                  //iChannelNames   index of string descriptor at the bottom of the file
 	// UAC2: 
       // Univeral Serial Bus Device Class Definition for Audio Data Formats 2.0, Section 2.3.1.6, Table 2-2, page 15-16
-      6,                                        // bLength
+      6,					// bLength
 	0x24,					// bDescriptorType = CS_INTERFACE
 	2,					// bDescriptorSubtype = FORMAT_TYPE
-	0x01,			// bFormatType = FORMAT_TYPE_I
-        AUDIO_SUBSLOT_SIZE,             // bSubSlotSize = size of a single sample in bytes (e.g. 2 bytes for 16bit audio)
-        AUDIO_BITRESOLUTION,            // bBitResolution
+	1,					// bFormatType = FORMAT_TYPE_I
+	AUDIO_SUBSLOT_SIZE,		// bSubSlotSize = size of a single sample in bytes (e.g. 2 bytes for 16bit audio)
+	AUDIO_BITRESOLUTION,		// bBitResolution
 	// UAC2: 
 	// Standard AS Isochronous Audio Data Endpoint Descriptor
       // Universal Serial Bus Device Class Definition for Audio Devices 2.0, Section 4.10.1.1, Table 4-33 page 85-86
