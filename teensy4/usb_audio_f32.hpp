@@ -330,10 +330,10 @@ private:
 		#endif
 	#elif AUDIO_USB_FORMAT == 4 // IEEE_FLOAT
 			#if OPENAUDIO
-				*dst = txBuffer[bIdx][j]->data[count+i];
+				*(float32_t *)dst = txBuffer[bIdx][j]->data[count+i];
 			#else
 				constexpr auto scale = 1<<(sizeof(int16_t)*8-1);
-				*dst = txBuffer[bIdx][j]->data[count+i]*float32_t(1./scale);
+				*(float32_t *)dst = txBuffer[bIdx][j]->data[count+i]*float32_t(1./scale);
 			#endif
 				dst += 4;
 	#else
