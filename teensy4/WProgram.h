@@ -59,7 +59,7 @@
 #include "usb_rawhid.h"
 #include "usb_flightsim.h"
 #include "MTP_Teensy.h"
-//#include "usb_audio_f32.hpp"
+#include "usb_audio.h"
 #include "usb_touch.h"
 //#include "usb_undef.h" // do not allow usb_desc.h stuff to leak to user programs
 

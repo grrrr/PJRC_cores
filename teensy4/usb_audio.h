@@ -28,6 +28,13 @@
  * SOFTWARE.
  */
 
+/*
+grrrr.org 2025:
+The original code has been extended with template mechanisms to allow an
+easy implementation of a float32_t version for the OpenAudio_ArduinoLibrary.
+This is implemented in a separate header file usb_audio_f32.h .
+*/
+
 #pragma once
 
 #include "usb_audio_interface.h"
@@ -38,38 +45,70 @@
 // Interface
 ///////////////////////////
 
-#if OPENAUDIO
-	#include <AudioStream_F32.h>
-	#define AudioStream_CLASS AudioStream_F32
-	#define sample_TYPE float32_t
-#else
-	#include <AudioStream.h>
-	#define AudioStream_CLASS AudioStream
-	#define sample_TYPE int16_t
-#endif
+#include <AudioStream.h>
 
-template <typename StreamClass>
-class AudioUSB_Base:
-	public StreamClass
+template<typename StreamClass> class AudioUSB_Base;
+
+// Specialization for original AudioStream
+// This provides everything that is specific for handling int16_t audio
+template<>
+class AudioUSB_Base<AudioStream>:
+	public AudioStream
 {
 protected:
-#if OPENAUDIO
-	typedef ::audio_block_f32_t audio_block_t;
-	static AudioUSB_Base::audio_block_t *allocate() { return StreamClass::allocate_f32(); }
-	static void release(AudioUSB_Base::audio_block_t *block) { StreamClass::release(block); }
-	audio_block_t *receiveReadOnly(unsigned int index = 0) { return StreamClass::receiveReadOnly_f32(index); }
-	audio_block_t *receiveWritable(unsigned int index = 0) { return StreamClass::receiveWritable_f32(index); }
-	void transmit(AudioUSB_Base::audio_block_t *block, unsigned char index = 0) { StreamClass::transmit(block, index); }
-	static int blocklength(const AudioUSB_Base::audio_block_t *block) { return block->length; }
-#else
+	typedef AudioStream StreamClass;
+	typedef int16_t sample_t;
 	typedef ::audio_block_t audio_block_t;
+
 	static int blocklength(const AudioUSB_Base::audio_block_t *) { return AUDIO_BLOCK_SAMPLES; }
-#endif
+
 public:
 	AudioUSB_Base(unsigned char ninput, AudioUSB_Base::audio_block_t **iqueue): StreamClass(ninput, iqueue) {}
+
+protected:
+	static int sample_to_buffer(sample_t *dst, const uint8_t *src)
+	{
+	#if AUDIO_USB_FORMAT == 1 // PCM
+		#if AUDIO_SUBSLOT_SIZE>=2 && AUDIO_SUBSLOT_SIZE<=4
+			// USB PCM data is always signed
+			src += (AUDIO_SUBSLOT_SIZE-sizeof(sample_t)); // eventually ignore low PCM bytes (with loss of precision)
+			*dst = *(const sample_t *)src;
+		#else
+			#error AUDIO_SUBSLOT_SIZE invalid
+		#endif
+	#elif AUDIO_USB_FORMAT == 4 // IEEE_FLOAT
+		constexpr auto scale = 1<<(sizeof(sample_t)*8-1);
+		constexpr auto fmin = -1.f;
+		constexpr auto fmax = float32_t((scale-1.)/scale);
+		const float32_t fsrc = *(const float32_t *)src;
+		*dst = sample_t(min(max(fsrc, fmin), fmax)*scale);
+	#else
+		#error AUDIO_USB_FORMAT invalid
+	#endif
+		return AUDIO_SUBSLOT_SIZE;
+	}
+
+	static int sample_from_buffer(uint8_t *dst, const sample_t *src)
+	{
+	#if AUDIO_USB_FORMAT == 1 // PCM
+		#if AUDIO_SUBSLOT_SIZE>=2 && AUDIO_SUBSLOT_SIZE<=4
+			for(int k = 0; k < AUDIO_SUBSLOT_SIZE-sizeof(sample_t); ++k)
+				*dst++ = 0; // zero low bytes
+			*(sample_t *)dst = *src;
+		#else
+			#error AUDIO_SUBSLOT_SIZE invalid
+		#endif
+	#elif AUDIO_USB_FORMAT == 4 // IEEE_FLOAT
+		constexpr auto scale = 1<<(sizeof(sample_t)*8-1);
+		*(float32_t *)dst = (*src)*float32_t(1./scale);
+	#else
+		#error AUDIO_USB_FORMAT invalid
+	#endif
+		return AUDIO_SUBSLOT_SIZE;
+	}
 };
 
-template <typename StreamClass>
+template<class StreamClass>
 class AudioInputUSB_Proto:
 	public AudioUSB_Base<StreamClass>
 {
@@ -133,48 +172,12 @@ public:
 	}
 
 private:
+
 	static void copy_to_buffers(const uint8_t *src, uint16_t bIdx, uint16_t noChannels, unsigned int count, unsigned int len)
 	{
 		for(uint32_t i = 0; i < len; i++)
-			for(uint16_t j = 0; j < noChannels; j++) {
-	#if AUDIO_USB_FORMAT == 1 // PCM
-		#if AUDIO_SUBSLOT_SIZE>=2 && AUDIO_SUBSLOT_SIZE<=4
-				// USB PCM data is always signed
-			#if OPENAUDIO
-				union {
-					int32_t i32;
-					uint8_t u8[4];
-				} tmp;
-				constexpr auto scale = 1<<(sizeof(tmp.i32)*8-1);
-				tmp.i32 = 0;
-				for(int k = 0; k < AUDIO_SUBSLOT_SIZE; ++k, ++src)
-					tmp.u8[k+(4-AUDIO_SUBSLOT_SIZE)] = *src;
-				// convert to float
-				rxBuffer[bIdx][j]->data[count+i] = tmp.i32*(1.f/float32_t(scale));
-			#else
-				src += (AUDIO_SUBSLOT_SIZE-2); // eventually ignore low PCM bytes (with loss of precision)
-				const int16_t *src16Bit = (const int16_t *)src;
-				rxBuffer[bIdx][j]->data[count+i] = *src16Bit;
-				src += 2;
-			#endif
-		#else
-			#error AUDIO_SUBSLOT_SIZE invalid
-		#endif
-	#elif AUDIO_USB_FORMAT == 4 // IEEE_FLOAT
-			#if OPENAUDIO
-				rxBuffer[bIdx][j]->data[count+i] = *(const float32_t *)(src);
-			#else
-				constexpr auto scale = 1<<(sizeof(int16_t)*8-1);
-				constexpr auto fmin = -1.f;
-				constexpr auto fmax = float32_t((scale-1.)/scale);
-				const float32_t fsrc = *(const float32_t *)src;
-				rxBuffer[bIdx][j]->data[count+i] = int16_t(min(max(fsrc, fmin), fmax)*scale);
-			#endif
-				src += 4;
-	#else
-		#error AUDIO_USB_FORMAT invalid
-	#endif
-			}
+			for(uint16_t j = 0; j < noChannels; j++)
+				src += AudioUSB_Base<StreamClass>::sample_to_buffer(&rxBuffer[bIdx][j]->data[count+i], src);
 	}
 
 	static bool setBlockQuiet(uint16_t bIdx, uint16_t channel)
@@ -217,12 +220,12 @@ private:
     USBAudioInInterface _usbInterface;
 };
 
-template <typename StreamClass>
+template<class StreamClass>
 typename AudioUSB_Base<StreamClass>::audio_block_t* AudioInputUSB_Proto<StreamClass>::rxBuffer[USBAudioInInterface::ringRxBufferSize][USB_AUDIO_MAX_NO_CHANNELS];
 
 
 
-template <typename StreamClass>
+template<class StreamClass>
 class AudioOutputUSB_Proto:
 	public AudioUSB_Base<StreamClass>
 {
@@ -300,48 +303,11 @@ public:
 	}
 
 private:
-
 	static void copy_from_buffers(uint8_t *dst, uint16_t bIdx, uint16_t noChannels, unsigned int count, unsigned int len)
 	{
-		for (uint32_t i = 0; i < len; ++i) {
-			for (uint16_t j = 0; j < noChannels; ++j) {
-	#if AUDIO_USB_FORMAT == 1 // PCM
-		#if AUDIO_SUBSLOT_SIZE>=2 && AUDIO_SUBSLOT_SIZE<=4
-			#if OPENAUDIO
-				union {
-					int32_t i32;
-					uint8_t u8[4];
-				} tmp;
-				constexpr auto scale = 1<<(sizeof(tmp.i32)*8-1);
-				constexpr auto fmin = -1.f;
-				constexpr auto fmax = float((scale-1.)/scale);
-				// we need to clip incoming float data
-				tmp.i32 = max(min(txBuffer[bIdx][j]->data[count+i], fmax), fmin)*float(scale);
-				for(int k = 0; k < AUDIO_SUBSLOT_SIZE; ++k, ++dst)
-					*dst = tmp.u8[k+(4-AUDIO_SUBSLOT_SIZE)];
-			#else
-				for(int k = 0; k < AUDIO_SUBSLOT_SIZE-2; ++k)
-					*dst++ = 0; // zero low bytes
-				int16_t* dst16Bit = (int16_t*)dst;
-				*dst16Bit = txBuffer[bIdx][j]->data[count+i];
-				dst += 2;
-			#endif
-		#else
-			#error AUDIO_SUBSLOT_SIZE invalid
-		#endif
-	#elif AUDIO_USB_FORMAT == 4 // IEEE_FLOAT
-			#if OPENAUDIO
-				*(float32_t *)dst = txBuffer[bIdx][j]->data[count+i];
-			#else
-				constexpr auto scale = 1<<(sizeof(int16_t)*8-1);
-				*(float32_t *)dst = txBuffer[bIdx][j]->data[count+i]*float32_t(1./scale);
-			#endif
-				dst += 4;
-	#else
-		#error AUDIO_USB_FORMAT invalid
-	#endif
-			}
-		}
+		for (uint32_t i = 0; i < len; ++i)
+			for (uint16_t j = 0; j < noChannels; ++j)
+				dst += AudioUSB_Base<StreamClass>::sample_from_buffer(dst, &txBuffer[bIdx][j]->data[count+i]);
 	}
 
 	static void releaseBlocks(uint16_t bIdx, uint16_t noChannels) {  
@@ -361,15 +327,16 @@ private:
     USBAudioOutInterface _usbInterface;
 };
 
-template <typename StreamClass>
+template<class StreamClass>
 typename AudioUSB_Base<StreamClass>::audio_block_t* AudioOutputUSB_Proto<StreamClass>::txBuffer[USBAudioOutInterface::ringTxBufferSize][USB_AUDIO_MAX_NO_CHANNELS];
 
 
 //////////////////////////////
+// Implementation
+//////////////////////////////
 
-
-using AudioInputUSB = AudioInputUSB_Proto<AudioStream_CLASS>;
-using AudioOutputUSB = AudioOutputUSB_Proto<AudioStream_CLASS>;
+using AudioInputUSB = AudioInputUSB_Proto<AudioStream>;
+using AudioOutputUSB = AudioOutputUSB_Proto<AudioStream>;
 
 #if USB_AUDIO_NO_CHANNELS_480 >= 4
 class AudioInputUSBQuad: public AudioInputUSB { public: AudioInputUSBQuad(float kp =400.f,float ki =.2f) : AudioInputUSB(kp, ki) {} };
