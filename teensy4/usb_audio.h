@@ -92,7 +92,7 @@ protected:
 	{
 	#if AUDIO_USB_FORMAT == 1 // PCM
 		#if AUDIO_SUBSLOT_SIZE>=2 && AUDIO_SUBSLOT_SIZE<=4
-			for(int k = 0; k < AUDIO_SUBSLOT_SIZE-sizeof(sample_t); ++k)
+			for(uint16_t k = 0; k < AUDIO_SUBSLOT_SIZE-sizeof(sample_t); ++k)
 				*dst++ = 0; // zero low bytes
 			*(sample_t *)dst = *src;
 		#else
@@ -112,7 +112,7 @@ template<class StreamClass>
 class AudioInputUSB_Proto:
 	public AudioUSB_Base<StreamClass>
 {
-public:	
+public:
 	AudioInputUSB_Proto(float kp = 400.f, float ki = .2f):
 		AudioUSB_Base<StreamClass>(0, NULL),
 		_usbInterface(setBlockQuiet, releaseBlock, allocateBlock, areBlocksReady, copy_to_buffers, kp, ki)
@@ -181,7 +181,7 @@ private:
 	}
 
 	static bool setBlockQuiet(uint16_t bIdx, uint16_t channel)
-	{        
+	{
 		if(!rxBuffer[bIdx][channel])
 			rxBuffer[bIdx][channel] = AudioUSB_Base<StreamClass>::allocate();
 
@@ -193,7 +193,7 @@ private:
 	}
 
 	static void releaseBlock(uint16_t bIdx, uint16_t channel)
-	{        
+	{
 		if(rxBuffer[bIdx][channel]) {
 			AudioUSB_Base<StreamClass>::release(rxBuffer[bIdx][channel]);
 			rxBuffer[bIdx][channel] = NULL;
@@ -201,7 +201,7 @@ private:
 	}
 
 	static bool allocateBlock(uint16_t bIdx, uint16_t channel)
-	{        
+	{
 		if(!rxBuffer[bIdx][channel]) {
 			rxBuffer[bIdx][channel] = AudioUSB_Base<StreamClass>::allocate();
 		}
@@ -310,7 +310,7 @@ private:
 				dst += AudioUSB_Base<StreamClass>::sample_from_buffer(dst, &txBuffer[bIdx][j]->data[count+i]);
 	}
 
-	static void releaseBlocks(uint16_t bIdx, uint16_t noChannels) {  
+	static void releaseBlocks(uint16_t bIdx, uint16_t noChannels) {
 		for (uint16_t i = 0; i < noChannels; i++)
 			if(txBuffer[bIdx][i]) {
 				AudioUSB_Base<StreamClass>::release(txBuffer[bIdx][i]);
